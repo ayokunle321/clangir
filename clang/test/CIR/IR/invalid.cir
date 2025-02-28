@@ -624,13 +624,6 @@ module {
 // -----
 
 module {
-  // expected-error@+1 {{prototyped function must have at least one non-variadic input}}
-  cir.func private @variadic(...) -> !cir.int<s, 32>
-}
-
-// -----
-
-module {
   // expected-error@+1 {{custom op 'cir.func' variadic arguments must be in the end of the argument list}}
   cir.func @variadic(..., !cir.int<s, 32>) -> !cir.int<s, 32>
 }
@@ -1500,3 +1493,11 @@ cir.func @cast0(%arg0: !s32i, %arg1: !s32i) {
 // expected-error @below {{!cir.func cannot have an explicit 'void' return type}}
 // expected-error @below {{failed to parse CIR_PointerType parameter}}
 cir.global external dsolocal @vfp = #cir.ptr<null> : !cir.ptr<!cir.func<(!s32i) -> !cir.void>>
+
+// -----
+
+// Verify that variadic functions do not allow an ellipsis anywhere except at
+// the end of the parameter list.
+
+// expected-error @below {{variadic `...` must be the last parameter}}
+!fty = !cir.func<(..., !s32i)>
