@@ -368,5 +368,140 @@ mlir::Value CIRGenFunction::emitX86BuiltinExpr(unsigned BuiltinID,
                                           builder.getStringAttr("x86.xgetbv"),
                                           builder.getUInt64Ty(), Ops)
         .getResult();
+
+  case X86::BI__builtin_ia32_gather3div2df:
+  case X86::BI__builtin_ia32_gather3div2di:
+  case X86::BI__builtin_ia32_gather3div4df:
+  case X86::BI__builtin_ia32_gather3div4di:
+  case X86::BI__builtin_ia32_gather3div4sf:
+  case X86::BI__builtin_ia32_gather3div4si:
+  case X86::BI__builtin_ia32_gather3div8sf:
+  case X86::BI__builtin_ia32_gather3div8si:
+  case X86::BI__builtin_ia32_gather3siv2df:
+  case X86::BI__builtin_ia32_gather3siv2di:
+  case X86::BI__builtin_ia32_gather3siv4df:
+  case X86::BI__builtin_ia32_gather3siv4di:
+  case X86::BI__builtin_ia32_gather3siv4sf:
+  case X86::BI__builtin_ia32_gather3siv4si:
+  case X86::BI__builtin_ia32_gather3siv8sf:
+  case X86::BI__builtin_ia32_gather3siv8si:
+  case X86::BI__builtin_ia32_gathersiv8df:
+  case X86::BI__builtin_ia32_gathersiv16sf:
+  case X86::BI__builtin_ia32_gatherdiv8df:
+  case X86::BI__builtin_ia32_gatherdiv16sf:
+  case X86::BI__builtin_ia32_gathersiv8di:
+  case X86::BI__builtin_ia32_gathersiv16si:
+  case X86::BI__builtin_ia32_gatherdiv8di:
+  case X86::BI__builtin_ia32_gatherdiv16si: {
+
+    // TODO(cir): Refactor this once we have the proper
+    // infrastructure that handles `getIntrinsic` similar to OG CodeGen.
+    std::string intrinsicName;
+    switch (BuiltinID) {
+    default: llvm_unreachable("Unsupported intrinsic!");    
+    case X86::BI__builtin_ia32_gather3div2df:
+      intrinsicName = "x86.avx512.mask.gather3div2.df";
+      break;
+    case X86::BI__builtin_ia32_gather3div2di:
+      intrinsicName = "x86.avx512.mask.gather3div2.di";
+      break;
+    case X86::BI__builtin_ia32_gather3div4df:
+      intrinsicName = "x86.avx512.mask.gather3div4.df";
+      break;
+    case X86::BI__builtin_ia32_gather3div4di:
+      intrinsicName = "x86.avx512.mask.gather3div4.di";
+      break;
+    case X86::BI__builtin_ia32_gather3div4sf:
+      intrinsicName = "x86.avx512.mask.gather3div4.sf";
+      break;
+    case X86::BI__builtin_ia32_gather3div4si:
+      intrinsicName = "x86.avx512.mask.gather3div4.si";
+      break;
+    case X86::BI__builtin_ia32_gather3div8sf:
+      intrinsicName = "x86.avx512.mask.gather3div8.sf";
+      break;
+    case X86::BI__builtin_ia32_gather3div8si:
+      intrinsicName = "x86.avx512.mask.gather3div8.si";
+      break;
+    case X86::BI__builtin_ia32_gather3siv2df:
+      intrinsicName = "x86.avx512.mask.gather3siv2.df";
+      break;
+    case X86::BI__builtin_ia32_gather3siv2di:
+      intrinsicName = "x86.avx512.mask.gather3siv2.di";
+      break;
+    case X86::BI__builtin_ia32_gather3siv4df:
+      intrinsicName = "x86.avx512.mask.gather3siv4.df";
+      break;
+    case X86::BI__builtin_ia32_gather3siv4di:
+      intrinsicName = "x86.avx512.mask.gather3siv4.di";
+      break;
+    case X86::BI__builtin_ia32_gather3siv4sf:
+      intrinsicName = "x86.avx512.mask.gather3siv4.sf";
+      break;
+    case X86::BI__builtin_ia32_gather3siv4si:
+      intrinsicName = "x86.avx512.mask.gather3siv4.si";
+      break;
+    case X86::BI__builtin_ia32_gather3siv8sf:
+      intrinsicName = "x86.avx512.mask.gather3siv8.sf";
+      break;
+    case X86::BI__builtin_ia32_gather3siv8si:
+      intrinsicName = "x86.avx512.mask.gather3siv8.si";
+      break;
+    case X86::BI__builtin_ia32_gathersiv8df:
+      intrinsicName = "x86.avx512.mask.gather.dpd.512";
+      break;
+    case X86::BI__builtin_ia32_gathersiv16sf:
+      intrinsicName = "x86.avx512.mask.gather.dps.512";
+      break;
+    case X86::BI__builtin_ia32_gatherdiv8df:
+      intrinsicName = "x86.avx512.mask.gather.qpd.512";
+      break;
+    case X86::BI__builtin_ia32_gatherdiv16sf:
+      intrinsicName = "x86.avx512.mask.gather.qpi.512";
+      break;
+    case X86::BI__builtin_ia32_gathersiv8di:
+      intrinsicName = "x86.avx512.mask.gather.dpq.512";
+      break;
+    case X86::BI__builtin_ia32_gathersiv16si:
+      intrinsicName = "x86.avx512.mask.gather.dpi.512";
+      break;
+    case X86::BI__builtin_ia32_gatherdiv8di:
+      intrinsicName = "x86.avx512.mask.gather.qpq.512";
+      break;
+    case X86::BI__builtin_ia32_gatherdiv16si:
+      intrinsicName = "x86.avx512.mask.gather.qpi.512";
+      break;
+    }
+    unsigned MinElts = std::min(
+        cast<cir::VectorType>(Ops[0].getType()).getSize(),
+        cast<cir::VectorType>(Ops[2].getType()).getSize());
+    Ops[3] = getMaskVecValue(*this, &Ops[3], MinElts);
+    
+    auto loc = getLoc(E->getExprLoc());
+    mlir::Type vecTy = cir::VectorType::get(builder.getI64Type(), 8);
+
+    return builder.create<cir::LLVMIntrinsicCallOp>(
+            loc, builder.getStringAttr(intrinsicName), vecTy, Ops)
+        .getResult(); 
   }
+}
+}
+
+// Convert the mask from an integer type to a vector of i1.
+static mlir::Value getMaskVecValue(CIRGenFunction &CGF, mlir::Value *Mask,
+                              unsigned NumElts) {
+
+  CIRGenBuilderTy &builder = CGF.getBuilder();
+  mlir::Type MaskTy = cir::VectorType::get(builder.getI1Type(), cast<cir::IntType>(Mask->getType()).getWidth());
+  mlir::Value MaskVec = builder.createBitcast(*Mask, MaskTy);
+
+  // If we have less than 8 elements, then the starting mask was an i8 and
+  // we need to extract down to the right number of elements.
+  if (NumElts < 8) {
+    long long Indices[4];
+    for (unsigned i = 0; i != NumElts; ++i)
+      Indices[i] = i;
+    MaskVec = builder.createVecShuffle(builder.getUnknownLoc(), MaskVec, MaskVec, ArrayRef(Indices, NumElts));
+  }
+  return MaskVec;
 }
